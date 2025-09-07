@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Immagine interattiva – Finale</title>
+<style>
+  :root{ --bg:#0b0b14; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:#eef1fb;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Helvetica,Arial}
+  .wrap{max-width:100vw;margin:12px auto;padding:0 10px}
+  .stage{position:relative;background:#000;border:1px solid rgba(255,255,255,.15);border-radius:12px;overflow:hidden}
+  svg{display:block;width:auto;height:85vh;max-width:98vw;margin:0 auto}
+  /* Poligoni invisibili sempre */
+  .hs{
+    fill: transparent;
+    stroke: transparent;
+    cursor: pointer;
+    transition: filter .3s ease;
+  }
+/* Aura bianca visibile per tutta la durata dell’audio */
+.hs.playing{
+  fill: rgba(255,255,255,0.15); /* più piena rispetto a 0.08 */
+  filter: drop-shadow(0 0 40px rgba(255,255,255,1))
+          drop-shadow(0 0 20px rgba(255,255,255,0.9));
+}
+
+  .subtitle{
+    position:absolute; left:50%; transform:translateX(-50%);
+    top:20px; z-index:3; pointer-events:none;
+    background:rgba(0,0,0,.35); padding:6px 10px; border-radius:10px;
+    font-weight:600; font-size:clamp(.9rem, 2.2vw, 1.05rem); letter-spacing:.2px;
+    white-space:nowrap; text-align:center;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage" id="stage">
+    <div class="subtitle">Tocca gli oggetti colorati per ascoltare gli spoiler</div>
+    <svg id="svg" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet">
+      <image id="bg" href="./foto.jpg" x="0" y="0" width="1000" height="1000" />
+      <g id="hotspots">
+        <polygon class="hs" data-id="1" data-audio="1.wav" points="1254,2447 1226,2520 1276,2531 1229,2601 1189,2788 1142,2673 944,2977 922,3008 843,2924 668,3148 612,3120 489,3296 453,3293 589,3081 634,3095 818,2804 916,2899 1089,2670 983,2668 1095,2595 1114,2495 1150,2536" aria-label="Stella"/>
+        <polygon class="hs" data-id="2" data-audio="2.wav" points="1293,2517 1488,2509 1658,2391 1979,2394 2426,2492 2479,2456 2646,2411 2828,2497 3009,2475 3079,2651 3043,2735 3204,2838 3235,3014 3043,3279 3009,3287 2856,3340 2613,3340 2124,3337 2085,3335 1798,3310 1773,3290 1829,3100 1739,3075 1667,2997 1594,2952 1323,2869 1231,2690" aria-label="Foglie"/>
+        <polygon class="hs" data-id="3" data-audio="3.wav" points="1488,760 1597,802 1478,1028 2125,1183 2242,1098 2359,1299 2839,1262 2944,1330 2790,1541 2688,1424 2275,1349 2127,1184 1471,1028 1376,966 468,1901 520,1854 592,1829 696,2051 577,2096 468,1891 486,1883 1392,957 1427,3124 1529,3073 1645,3296 1521,3339 1463,3248 1417,3129 1390,924" aria-label="Domino"/>
+        <polygon class="hs" data-id="4" data-audio="4.wav" points="2977,1355 3107,1346 3140,1374 3132,1469 3098,1486 2959,1483 2957,1381" aria-label="Telefono"/>
+        <polygon class="hs" data-id="5" data-audio="5.wav" points="1898,1647 1884,1673 1787,1604 1818,1312 1711,1305 1776,1139 1823,1142 1805,1239 1912,1244 1876,1332 1856,1393 1837,1469 1828,1579" aria-label="Sigaretta"/>
+        <polygon class="hs" data-id="6" data-audio="6.wav" points="564,1580 508,1365 425,1332 344,1246 278,1175 123,1026 1,1368 -2,1764 3,1901 -2,1929 57,1947 98,1939 359,1665 455,1653 517,1625 545,1605" aria-label="Bicchiere"/>
+      </g>
+    </svg>
+  </div>
+</div>
+
+<script>
+(function(){
+  const svg = document.getElementById('svg');
+  const bg = document.getElementById('bg');
+  const img = new Image();
+
+  img.onload = function(){
+    const w = img.naturalWidth||img.width, h = img.naturalHeight||img.height;
+    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    bg.setAttribute('width', w); bg.setAttribute('height', h);
+    fitToScreen(w,h);
+  };
+  img.src = bg.getAttribute('href');
+
+  function fitToScreen(w,h){
+    const vh = window.innerHeight;
+    const vw = window.innerWidth;
+    const targetH = Math.floor(vh * 0.85);
+    const targetW = Math.floor(vw * 0.98);
+    const scaleByH = targetH;
+    const scaleByW = Math.floor(targetW * (h / w));
+    const finalH = Math.min(scaleByH, scaleByW);
+    svg.style.height = finalH + 'px';
+    svg.style.maxWidth = '98vw';
+    svg.style.width = 'auto';
+  }
+  window.addEventListener('resize', ()=>{
+    const vb = svg.getAttribute('viewBox').split(' ').map(Number);
+    if(vb.length===4) fitToScreen(vb[2], vb[3]);
+  });
+
+  // Audio player
+  const player = new Audio(); player.preload='auto';
+  let current = null;
+  document.getElementById('hotspots').addEventListener('click', (e)=>{
+    const el = e.target.closest('.hs'); if(!el) return;
+    const src = el.dataset.audio; if(!src) return;
+
+    if(current){ current.classList.remove('playing'); }
+    if(player.src && player.src.includes(src)){ player.currentTime=0; player.play(); }
+    else{ player.pause(); player.src=src; player.currentTime=0; player.play(); }
+
+    current = el;
+    el.classList.add('playing');
+  });
+
+  document.addEventListener('keydown', (e)=>{
+    if(e.key===' '){
+      e.preventDefault();
+      player.pause(); player.currentTime = 0;
+      if(current){ current.classList.remove('playing'); current = null; }
+    }
+  });
+})();
+</script>
+</body>
+</html>
